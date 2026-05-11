@@ -16,9 +16,11 @@ except Exception:  # pragma: no cover - optional dependency
 
 @dataclass
 class RuleMiningConfig:
-    min_support: float = 0.1
-    min_confidence: float = 0.7
+    min_support: float = 0.15
+    min_confidence: float = 0.8
     min_lift: float = 1.5
+    max_len: int = 3
+
 
 
 def build_transactions(
@@ -53,7 +55,12 @@ def mine_association_rules(
     encoder = TransactionEncoder()
     encoded = encoder.fit(transactions).transform(transactions)
     one_hot = pd.DataFrame(encoded, columns=encoder.columns_)
-    frequent_itemsets = apriori(one_hot, min_support=config.min_support, use_colnames=True)
+    frequent_itemsets = apriori(
+        one_hot,
+        min_support=config.min_support,
+        use_colnames=True,
+        max_len=config.max_len,
+    )
 
     if frequent_itemsets.empty:
         return pd.DataFrame(columns=["antecedents", "consequents", "support", "confidence", "lift"])
