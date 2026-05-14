@@ -104,6 +104,8 @@ class FraudDetectionPipeline:
             else:
                 cluster_risk_map[int(cluster_id)] = float(y_train.loc[cluster_rows.index].mean())
 
+        allowed_tokens = {feat for feat in bundle.text_vectorizer.get_feature_names_out() if " " not in feat}
+        
         transactions = build_transactions(
             train_df[y_train == 1] if (y_train == 1).any() else train_df,
             text_col="clean_text",
@@ -112,6 +114,7 @@ class FraudDetectionPipeline:
                 for column in ["has_url", "has_shorturl", "has_phone", "has_money", "bank_mention"]
                 if column in train_df.columns
             ],
+            allowed_tokens=allowed_tokens,
         )
         try:
             rules = mine_association_rules(transactions, RuleMiningConfig())

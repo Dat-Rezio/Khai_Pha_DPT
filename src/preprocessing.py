@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Sequence
@@ -7,6 +8,7 @@ from typing import Dict, Iterable, List, Sequence
 import pandas as pd
 
 try:
+    # pyrefly: ignore [missing-import]
     from underthesea import pos_tag, word_tokenize
 except Exception:  # pragma: no cover - optional dependency
     pos_tag = None
@@ -80,6 +82,8 @@ DEFAULT_STOPWORDS = {
     "có",
     "không",
 }
+
+ENABLE_POS_TAGGING = os.environ.get("ENABLE_POS_TAGGING", "0") == "1"
 
 
 @dataclass
@@ -175,7 +179,7 @@ def preprocess_message(text: object) -> CleanedMessage:
     cleaned = normalize_text(raw)
     tokens = _remove_stopwords(_tokenize(cleaned))
     pos_counts: Dict[str, int] = {}
-    if pos_tag is not None and cleaned:
+    if ENABLE_POS_TAGGING and pos_tag is not None and cleaned:
         try:
             for _, tag in pos_tag(cleaned):
                 pos_counts[tag] = pos_counts.get(tag, 0) + 1
