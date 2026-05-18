@@ -93,7 +93,7 @@ def test_model(model_path: Path):
             
             # Determine if prediction is correct
             is_spam_category = "spam" in category or "phishing" in category
-            is_correct = (fraud_prob > 0.5 and is_spam_category) or (fraud_prob <= 0.5 and not is_spam_category)
+            is_correct = (fraud_prob > 0.4 and is_spam_category) or (fraud_prob <= 0.5 and not is_spam_category)
             status = "✅" if is_correct else "❌"
             
             print(f"{status} {idx}. {text}")

@@ -106,9 +106,7 @@ class FraudDetectionPipeline:
 
         feature_importance = get_feature_importance(classifier, feature_names(bundle))
 
-        cluster_source = train_df[y_train == 1]
-        if cluster_source.empty:
-            cluster_source = train_df
+        cluster_source = train_df
         cluster_matrix = transform_feature_bundle(bundle, cluster_source, text_col="clean_text")
         k = min(self.n_clusters, max(2, cluster_source.shape[0] - 1))
         cluster_diagnostics = choose_best_k(cluster_matrix, k_values=range(2, max(3, k + 1)), random_state=self.random_state)
@@ -127,7 +125,9 @@ class FraudDetectionPipeline:
         rules = pd.DataFrame(columns=["antecedents", "consequents", "support", "confidence", "lift"])
         
         if not self.skip_rules:
-            transactions = build_transactions(
+            allowed_tokens = {feat for feat in bundle.text_vectorizer.get_feature_names_out() if " " not in feat}
+        
+        transactions = build_transactions(
                 train_df[y_train == 1] if (y_train == 1).any() else train_df,
                 text_col="clean_text",
                 extra_item_columns=[
@@ -135,11 +135,12 @@ class FraudDetectionPipeline:
                     for column in ["has_url", "has_shorturl", "has_phone", "has_money", "bank_mention"]
                     if column in train_df.columns
                 ],
-            )
-            try:
+                allowed_tokens=allowed_tokens,
+        )
+        try:
                 config = RuleMiningConfig(min_support=self.min_support)
                 rules = mine_association_rules(transactions, config)
-            except ImportError:
+        except ImportError:
                 pass
         else:
             print("[info] Skipping association rule mining")

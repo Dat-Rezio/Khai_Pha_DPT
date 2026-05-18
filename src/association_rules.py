@@ -27,6 +27,7 @@ def build_transactions(
     df: pd.DataFrame,
     text_col: str = "clean_text",
     extra_item_columns: Sequence[str] | None = None,
+    allowed_tokens: set[str] | None = None,
 ) -> List[List[str]]:
     if text_col not in df.columns:
         raise KeyError(f"Missing text column: {text_col}")
@@ -36,6 +37,8 @@ def build_transactions(
 
     for _, row in df.iterrows():
         items = [token for token in str(row[text_col]).split() if token]
+        if allowed_tokens is not None:
+            items = [item for item in items if item in allowed_tokens]
         for column in extra_item_columns:
             if column in row and bool(row[column]):
                 items.append(column)
