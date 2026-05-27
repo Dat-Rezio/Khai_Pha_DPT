@@ -182,17 +182,35 @@ class FraudDetectionPipeline:
         cluster_ids = assign_clusters(self.artifacts.cluster_model, matrix) if self.artifacts.cluster_model is not None else np.zeros(len(frame), dtype=int)
 
         alerts = []
+        reasons_list = []
+        
         for index, probability in enumerate(proba):
             cluster_id = int(cluster_ids[index]) if len(cluster_ids) else 0
             cluster_risk = self.artifacts.cluster_risk_map.get(cluster_id, 0.0)
             rule_hits = 0
+            
+            # Generate reasons for this prediction
+            reasons = []
+            if probability > 0.7:
+                reasons.append(f"High fraud probability ({probability:.1%})")
+            elif probability > 0.5:
+                reasons.append(f"Moderate fraud probability ({probability:.1%})")
+            
+            if cluster_risk > 0.6:
+                reasons.append(f"Cluster {cluster_id} has {cluster_risk:.0%} fraud rate")
+            
+            # Check for matching rules
             if not self.artifacts.rules.empty:
                 tokens = set(prepared.iloc[index]["clean_text"].split())
                 for _, rule in self.artifacts.rules.iterrows():
                     antecedents = set(rule["antecedents"])
                     if antecedents and antecedents.issubset(tokens):
                         rule_hits += 1
-            alerts.append(build_alert(probability, cluster_risk=cluster_risk, rule_hits=rule_hits))
+            
+            # Build alert with reasons
+            alert = build_alert(probability, cluster_risk=cluster_risk, rule_hits=rule_hits, reasons=reasons)
+            alerts.append(alert)
+            reasons_list.append(alert.reasons)
 
         return pd.DataFrame(
             {
@@ -201,6 +219,7 @@ class FraudDetectionPipeline:
                 "cluster_id": cluster_ids,
                 "risk_score": [alert.score for alert in alerts],
                 "severity": [alert.severity for alert in alerts],
+                "reasons": reasons_list,
             }
         )
 
